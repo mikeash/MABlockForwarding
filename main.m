@@ -14,6 +14,8 @@ int main(int argc, char **argv)
         return x + 1;
     });
     
+    intblock = [[intblock copy] autorelease];
+    
     NSLog(@"%d", intblock(1));
     NSLog(@"%d", intblock(2));
     NSLog(@"%d", intblock(2));

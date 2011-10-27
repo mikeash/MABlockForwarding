@@ -100,6 +100,11 @@ static const char *BlockSig(id blockObj)
     });
 }
 
+- (id)copyWithZone: (NSZone *)zone
+{
+    return [self retain];
+}
+
 @end
 
 id MAForwardingBlock(BlockInterposer interposer, id block)
