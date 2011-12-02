@@ -148,7 +148,7 @@ id MAMemoize(id block) {
             {
                 [inv getArgument: &arg atIndex: i];
                 if([arg conformsToProtocol: @protocol(NSCopying)])
-                    arg = [arg copy];
+                    arg = [[arg copy] autorelease];
             }
             else if(type[0] == @encode(char *)[0])
             {
