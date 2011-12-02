@@ -1,4 +1,5 @@
 
+#import <malloc/malloc.h>
 #import <objc/message.h>
 #import "MABlockForwarding.h"
 
@@ -76,7 +77,7 @@ static const char *BlockSig(id blockObj)
         // NB: The bottom 16 bits represent the block's retain count
         _flags = ((struct Block *) block)->flags & ~0xFFFF;
         
-        _descriptor->size = sizeof(*self);
+        _descriptor->size = malloc_size(self);
         
         int index = 0;
         if (_flags & BLOCK_HAS_COPY_DISPOSE)
