@@ -76,6 +76,14 @@ static const char *BlockSig(id blockObj)
         // NB: The bottom 16 bits represent the block's retain count
         _flags = ((struct Block *) block)->flags & ~0xFFFF;
         
+        _descriptor->size = sizeof(self);
+        
+        int index = 0;
+        if (_flags & BLOCK_HAS_COPY_DISPOSE)
+            index += 2;
+        
+        _descriptor->rest[index] = (void *) BlockSig(block);
+        
         if (_flags & BLOCK_HAS_STRET)
             _invoke = (IMP) _objc_msgForward_stret;
         else
