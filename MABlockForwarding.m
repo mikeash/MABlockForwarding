@@ -1,6 +1,7 @@
 
+#import <malloc/malloc.h>
+#import <objc/message.h>
 #import "MABlockForwarding.h"
-
 
 struct BlockDescriptor
 {
@@ -18,6 +19,14 @@ struct Block
     struct BlockDescriptor *descriptor;
 };
 
+enum {
+    BLOCK_HAS_COPY_DISPOSE =  (1 << 25),
+    BLOCK_HAS_CTOR =          (1 << 26), // helpers have C++ code
+    BLOCK_IS_GLOBAL =         (1 << 28),
+    BLOCK_HAS_STRET =         (1 << 29), // IFF BLOCK_HAS_SIGNATURE
+    BLOCK_HAS_SIGNATURE =     (1 << 30), 
+};
+
 static void *BlockImpl(id block)
 {
     return ((struct Block *)block)->invoke;
@@ -28,13 +37,10 @@ static const char *BlockSig(id blockObj)
     struct Block *block = (void *)blockObj;
     struct BlockDescriptor *descriptor = block->descriptor;
     
-    int copyDisposeFlag = 1 << 25;
-    int signatureFlag = 1 << 30;
-    
-    assert(block->flags & signatureFlag);
+    assert(block->flags & BLOCK_HAS_SIGNATURE);
     
     int index = 0;
-    if(block->flags & copyDisposeFlag)
+    if(block->flags & BLOCK_HAS_COPY_DISPOSE)
         index += 2;
     
     return descriptor->rest[index];
@@ -67,7 +73,22 @@ static const char *BlockSig(id blockObj)
     {
         _forwardingBlock = [block copy];
         _interposer = [interposer copy];
-        _invoke = [self methodForSelector: @selector(thisDoesNotExistOrAtLeastItReallyShouldnt)];
+        
+        // NB: The bottom 16 bits represent the block's retain count
+        _flags = ((struct Block *) block)->flags & ~0xFFFF;
+        
+        _descriptor->size = malloc_size(self);
+        
+        int index = 0;
+        if (_flags & BLOCK_HAS_COPY_DISPOSE)
+            index += 2;
+        
+        _descriptor->rest[index] = (void *) BlockSig(block);
+        
+        if (_flags & BLOCK_HAS_STRET)
+            _invoke = (IMP) _objc_msgForward_stret;
+        else
+            _invoke = _objc_msgForward;
     }
     return self;
 }
@@ -127,7 +148,7 @@ id MAMemoize(id block) {
             {
                 [inv getArgument: &arg atIndex: i];
                 if([arg conformsToProtocol: @protocol(NSCopying)])
-                    arg = [arg copy];
+                    arg = [[arg copy] autorelease];
             }
             else if(type[0] == @encode(char *)[0])
             {
