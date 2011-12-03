@@ -77,7 +77,7 @@ static const char *BlockSig(id blockObj)
         // NB: The bottom 16 bits represent the block's retain count
         _flags = ((struct Block *) block)->flags & ~0xFFFF;
         
-        _descriptor->size = malloc_size(self);
+        _descriptor->size = class_getInstanceSize([self class]);
         
         int index = 0;
         if (_flags & BLOCK_HAS_COPY_DISPOSE)
